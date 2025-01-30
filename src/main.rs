@@ -1,55 +1,115 @@
-use std::{fs, io};
-use rodio::{Decoder, OutputStream, Sink, Source};
+use std::{fs, io, time};
+use rodio;
+use audiotags;
 
-fn main() 
+#[derive(Default)]
+struct AudioRecord
 {
-    let (_stream, stream_handle) = OutputStream::try_default().unwrap();
-    let sink = Sink::try_new(&stream_handle).unwrap();
+    title: String,
+    album: String,
+    artist: String,
+    genre: String,
 
-    let source = load_audio_source("/var/home/finley/RustProjects/audio-test/target/GOBLINSMOKER - Toad King EP [FULL ALBUM] 2018 4.mp3".to_string());
-    let source = match source
+    file_path: String,
+}
+
+struct JukeBox
+{
+    stream: rodio::OutputStream,
+    track_list: rodio::Sink, // handles the currently playing audio
+}
+
+impl JukeBox
+{
+    fn new() -> JukeBox
     {
-        Some(source) => source,
-        None => panic!("No audio source found"),
-    };
-
-    let total_duration = source.total_duration();
-    let mut total_minutes: u64 = 0;
-    let mut total_seconds: u64 = 0;
-
-    match total_duration 
-    {
-        Some(dur) => 
+        let (output_stream, handle) = rodio::OutputStream::try_default().unwrap();
+        let sink = rodio::Sink::try_new(&handle).unwrap();
+        
+        return JukeBox 
         {
-            total_minutes = dur.as_secs() / 60;
-            total_seconds = dur.as_secs() % 60;
-        },
-        None => println!("No duration found!"),
+            stream: output_stream,
+            track_list: sink,
+        }
     }
 
-    sink.append(source);
-
-    while !sink.empty()
+    fn add_track(&mut self, record: &AudioRecord)
     {
-        let current_minutes = sink.get_pos().as_secs() / 60;
-        let current_seconds = sink.get_pos().as_secs() % 60;
+        let source = load_audio_source(&record.file_path);
+        let source = match source
+        {
+            Some(source) => source,
+            None => panic!("No audio source found"),
+        };
 
-        println!("[{current_minutes} : {current_seconds}] - [{total_minutes} : {total_seconds}]");
+        self.track_list.append(source);
     }
 }
 
-fn load_audio_source(file_path: String) -> Option<Decoder<io::BufReader<fs::File>>>
+fn main() 
+{
+    // let mut jukebox = JukeBox::new();
+    // let record = AudioRecord {
+    //     file_path: "/var/home/finley/RustProjects/audio-test/target/Ruby the Hatchet - Tomorrow Never Comes.mp3".to_string(),
+    // };
+
+    // jukebox.add_track(&record);
+
+    // jukebox.track_list.sleep_until_end();
+
+    get_audio_info(&"/var/home/finley/RustProjects/audio-test/target/Ruby the Hatchet - Tomorrow Never Comes.mp3".to_string())
+}
+
+fn duration_to_seconds(duration: &time::Duration) -> u64
+{
+    return duration.as_secs() % 60;
+}
+
+fn duration_to_minutes(duration: &time::Duration) -> u64
+{
+    return duration.as_secs() / 60;
+}
+
+fn fmt_time(time: u64) -> String
+{
+    if time < 10
+    {
+        return format!("{:02}", time);
+    }
+
+    return time.to_string();
+}
+
+fn fmt_duration(minutes: u64, seconds: u64) -> String
+{
+    let minutes = fmt_time(minutes);
+    let seconds = fmt_time(seconds);
+
+    return format!("{} : {}", minutes, seconds);
+}
+
+fn get_audio_info(file_path: &String)
+{
+    let audio_tags = audiotags::Tag::new().read_from_path(&file_path).unwrap();
+
+    let album = audio_tags.album().unwrap();
+
+    let artist = album.artist.unwrap();
+    let album_name = album.title;
+    let song_name = audio_tags.title().unwrap();
+    let song_genre = audio_tags.genre().unwrap();
+
+    println!("Artist: {}, Album: {}, Song: {}, genre: {}", 
+        artist, album_name, song_name, song_genre);
+}
+
+fn load_audio_source(file_path: &String) -> Option<rodio::Decoder<io::BufReader<fs::File>>>
 {
     // attempt to retrieve the audio file.
-    let file = fs::File::open(file_path);
-    let file = match file 
-    {
-        Ok(file) => file,
-        Err(_) => return None,
-    };
+    let file = fs::File::open(file_path).ok()?;
 
     // attempts and decodes the audio file.
-    let source = Decoder::new(io::BufReader::new(file));
+    let source = rodio::Decoder::new(io::BufReader::new(file));
     
     match source 
     {
