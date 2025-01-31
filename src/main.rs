@@ -1,5 +1,6 @@
 pub mod audio_clip;
 
+use std::env;
 use std::time;
 use audio_clip::AudioClip;
 use rodio::{self, Source};
@@ -99,8 +100,11 @@ impl JukeBox
 
 fn main() 
 {
+    let args: Vec<String> = env::args().collect();
+    let path = &args[1]; // very simple, for now.
+
     let mut jukebox = JukeBox::new();
-    let record = AudioClip::try_new("/var/home/finley/RustProjects/audio_test/target/Ruby the Hatchet - Tomorrow Never Comes.mp3");
+    let record = AudioClip::try_new(path);
     let record = match record
     {
         Some(record) => record,
