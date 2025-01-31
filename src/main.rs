@@ -1,13 +1,11 @@
 pub mod audio_clip;
+pub mod application;
 
 use std::env;
 use std::time;
 use audio_clip::AudioClip;
+use application::Application;
 use rodio::{self, Source};
-
-use crossterm::event::{self, Event};
-use ratatui::{text::Text, Frame};
-
 
 pub struct PlayingData
 {
@@ -102,49 +100,15 @@ impl JukeBox
     }
 }
 
-fn main() 
+fn main() -> std::io::Result<()>
 {   
-    rat();
-    return ();
-
-    let args: Vec<String> = env::args().collect();
-    let path = &args[1]; // very simple, for now.
-
-    let mut jukebox = JukeBox::new();
-    let record = AudioClip::try_new(path);
-    let record = match record
-    {
-        Some(record) => record,
-        None => panic!("No audio found"),
-    };
-
-    let _ = jukebox.try_play_track(&record);
-
-    jukebox.track_list.sleep_until_end();
-}
-
-fn rat()
-{
+    // initialse terminal and application
     let mut terminal = ratatui::init();
-
-    loop
-    {
-        terminal.draw(draw_rat).expect("Failed to draw frame!"); 
-
-        if matches!(event::read().expect("Failed to read event"), Event::Key(_))  
-        {
-            break;
-        } 
-    }
+    let application = Application::default().run(&mut terminal);
 
     ratatui::restore();
-}
 
-fn draw_rat(frame: &mut Frame)
-{
-    let text = Text::raw("Hello world!");
-    
-    frame.render_widget(text, frame.area());
+    return application;
 }
 
 fn fmt_duration(minutes: u64, seconds: u64) -> String
