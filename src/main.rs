@@ -5,6 +5,10 @@ use std::time;
 use audio_clip::AudioClip;
 use rodio::{self, Source};
 
+use crossterm::event::{self, Event};
+use ratatui::{text::Text, Frame};
+
+
 pub struct PlayingData
 {
     name_of_song: String,
@@ -99,7 +103,10 @@ impl JukeBox
 }
 
 fn main() 
-{
+{   
+    rat();
+    return ();
+
     let args: Vec<String> = env::args().collect();
     let path = &args[1]; // very simple, for now.
 
@@ -114,6 +121,30 @@ fn main()
     let _ = jukebox.try_play_track(&record);
 
     jukebox.track_list.sleep_until_end();
+}
+
+fn rat()
+{
+    let mut terminal = ratatui::init();
+
+    loop
+    {
+        terminal.draw(draw_rat).expect("Failed to draw frame!"); 
+
+        if matches!(event::read().expect("Failed to read event"), Event::Key(_))  
+        {
+            break;
+        } 
+    }
+
+    ratatui::restore();
+}
+
+fn draw_rat(frame: &mut Frame)
+{
+    let text = Text::raw("Hello world!");
+    
+    frame.render_widget(text, frame.area());
 }
 
 fn fmt_duration(minutes: u64, seconds: u64) -> String
