@@ -1,16 +1,29 @@
+use crate::audio::{
+    jukebox::Jukebox, audio_clip::AudioClip
+};
+
 use ratatui;
 use ratatui::widgets;
 
 use crossterm::event;
 
-#[derive(Default)]
 pub struct Application
 {
+    pub jukebok: Jukebox,
     should_close: bool,
 }
 
 impl Application
 {
+    pub fn new() -> Application
+    {
+        Application
+        {
+            jukebok: Jukebox::new(),
+            should_close: false,
+        }
+    }
+
     pub fn run(&mut self, terminal: &mut ratatui::DefaultTerminal) -> std::io::Result<()>
     {
         while !self.should_close
@@ -23,6 +36,17 @@ impl Application
         }
 
         return Ok(());
+    }
+
+    pub fn close(&mut self) -> ()
+    {
+        self.should_close = true;
+    }
+
+    fn temp(&mut self) -> () // test clip playing
+    {
+        let clip = AudioClip::try_new("/home/finley/Music/Ruby the Hatchet - Tomorrow Never Comes.mp3").unwrap();
+        self.jukebok.try_play_track(&clip).unwrap();
     }
 
     fn handle_events(&mut self) -> std::io::Result<()>
@@ -49,20 +73,25 @@ impl Application
         match key_event.code
         {
             event::KeyCode::Char('q') => self.close(),
+            event::KeyCode::Char(' ') => self.temp(),
             _ => {}
         }
     }
 
     fn draw(&self, frame: &mut ratatui::Frame) -> ()
     {
-        let text = widgets::Paragraph::new("Hello, World");
+        let data = self.jukebok.try_get_playing_data();
 
-        frame.render_widget(text, frame.area());
-    }
+        match data
+        {
+            Some(data) =>
+            {
+                let text = widgets::Paragraph::new(format!("Playing: {}, By: {}", data.get_song(), data.get_artist()));
 
-    fn close(&mut self) -> ()
-    {
-        self.should_close = true;
+                frame.render_widget(text, frame.area());
+            },
+            None => {}
+        }
     }
 }
 
@@ -76,7 +105,7 @@ mod tests
     #[test]
     fn test_key_event() -> io::Result<()> 
     {
-        let mut app = Application::default();
+        let mut app = Application::new();
         app.handle_key_events(event::KeyCode::Char('q').into());
         assert_eq!(app.should_close, true);
 
