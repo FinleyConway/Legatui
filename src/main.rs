@@ -1,22 +1,43 @@
-use std::{fs, io, time};
-use rodio;
-use audiotags;
+pub mod audio_clip;
 
-#[derive(Default)]
-struct AudioRecord
+use std::time;
+use audio_clip::AudioClip;
+use rodio::{self, Source};
+
+pub struct PlayingData
 {
-    title: String,
-    album: String,
-    artist: String,
-    genre: String,
+    name_of_song: String,
+    name_of_artist: String,
+    duration: time::Duration
+    // TODO: store iterators of the audio samples
+}
 
-    file_path: String,
+impl PlayingData
+{
+    pub fn get_song(&self) -> &str
+    {
+        return &self.name_of_song;
+    }
+
+    pub fn get_artist(&self) -> &str
+    {
+        return &self.name_of_artist;
+    }
+
+    pub fn get_duration(&self) -> (u64, u64) // maybe return a struct for readability
+    {
+        let seconds: u64 = self.duration.as_secs() % 60;
+        let minutes: u64 = self.duration.as_secs() / 60;
+
+        return (minutes, seconds);
+    }
 }
 
 struct JukeBox
 {
     stream: rodio::OutputStream,
     track_list: rodio::Sink, // handles the currently playing audio
+    current_track: Option<PlayingData>, // keeps track of the playing audio data
 }
 
 impl JukeBox
@@ -25,59 +46,70 @@ impl JukeBox
     {
         let (output_stream, handle) = rodio::OutputStream::try_default().unwrap();
         let sink = rodio::Sink::try_new(&handle).unwrap();
-        
+
         return JukeBox 
         {
             stream: output_stream,
             track_list: sink,
+            current_track: None,
         }
     }
 
-    fn add_track(&mut self, record: &AudioRecord)
+    fn try_play_track(&mut self, record: &AudioClip) -> Result<(), ()>
     {
-        let source = load_audio_source(&record.file_path);
+        // try to load the audio 
+        let source = record.try_load_source();
         let source = match source
         {
             Some(source) => source,
-            None => panic!("No audio source found"),
+            None => return Err(()), // TODO: provide a better error
         };
 
+        // attempt to retrieve the audio duration
+        let source_duration = source.total_duration().unwrap_or_default();
+
+        // keep track of the playing data and add it to the sink
+        self.current_track = Some(PlayingData
+        {
+            name_of_song: record.title.clone(),
+            name_of_artist: record.artist.clone(),
+            duration: source_duration,
+        });
+
+        // remove any playing clip and add new clip
+        self.remove_current_playing();
         self.track_list.append(source);
+
+        return Ok(());
+    }
+
+    fn remove_current_playing(&self) -> ()
+    {
+        if self.is_playing()
+        {
+            self.track_list.stop();
+        }
+    }
+
+    fn is_playing(&self) -> bool
+    {
+        return !self.track_list.empty();
     }
 }
 
 fn main() 
 {
-    // let mut jukebox = JukeBox::new();
-    // let record = AudioRecord {
-    //     file_path: "/var/home/finley/RustProjects/audio-test/target/Ruby the Hatchet - Tomorrow Never Comes.mp3".to_string(),
-    // };
-
-    // jukebox.add_track(&record);
-
-    // jukebox.track_list.sleep_until_end();
-
-    get_audio_info(&"/var/home/finley/RustProjects/audio-test/target/Ruby the Hatchet - Tomorrow Never Comes.mp3".to_string())
-}
-
-fn duration_to_seconds(duration: &time::Duration) -> u64
-{
-    return duration.as_secs() % 60;
-}
-
-fn duration_to_minutes(duration: &time::Duration) -> u64
-{
-    return duration.as_secs() / 60;
-}
-
-fn fmt_time(time: u64) -> String
-{
-    if time < 10
+    let mut jukebox = JukeBox::new();
+    let record = AudioClip::try_new("/var/home/finley/RustProjects/audio_test/target/Ruby the Hatchet - Tomorrow Never Comes.mp3");
+    let record = match record
     {
-        return format!("{:02}", time);
-    }
+        Some(record) => record,
+        None => panic!("No audio found"),
+    };
 
-    return time.to_string();
+    let _ = jukebox.try_play_track(&record);
+
+    jukebox.track_list.sleep_until_end();
 }
 
 fn fmt_duration(minutes: u64, seconds: u64) -> String
@@ -88,32 +120,12 @@ fn fmt_duration(minutes: u64, seconds: u64) -> String
     return format!("{} : {}", minutes, seconds);
 }
 
-fn get_audio_info(file_path: &String)
+fn fmt_time(time: u64) -> String
 {
-    let audio_tags = audiotags::Tag::new().read_from_path(&file_path).unwrap();
-
-    let album = audio_tags.album().unwrap();
-
-    let artist = album.artist.unwrap();
-    let album_name = album.title;
-    let song_name = audio_tags.title().unwrap();
-    let song_genre = audio_tags.genre().unwrap();
-
-    println!("Artist: {}, Album: {}, Song: {}, genre: {}", 
-        artist, album_name, song_name, song_genre);
-}
-
-fn load_audio_source(file_path: &String) -> Option<rodio::Decoder<io::BufReader<fs::File>>>
-{
-    // attempt to retrieve the audio file.
-    let file = fs::File::open(file_path).ok()?;
-
-    // attempts and decodes the audio file.
-    let source = rodio::Decoder::new(io::BufReader::new(file));
-    
-    match source 
+    if time < 10
     {
-        Ok(source) => return Some(source),
-        Err(_) => return None,
-    };
+        return format!("{:02}", time);
+    }
+
+    return time.to_string();
 }
