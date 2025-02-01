@@ -23,7 +23,7 @@ impl AudioClip
                 let artist = audio_tags.artist().unwrap_or_default();
                 let album_name = audio_tags.album_title().unwrap_or_default();
                 let song_name = audio_tags.title().unwrap_or_default();
-                let song_genre = audio_tags.genre().unwrap_or_default();
+                let song_genre = audio_tags.genre().unwrap_or_default(); // TODO: rovide a better error handling
 
                 Some(AudioClip 
                 {

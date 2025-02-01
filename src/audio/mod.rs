@@ -1,2 +1,2 @@
 pub mod audio_clip;
-pub mod jukebox;
+pub mod audio_player;

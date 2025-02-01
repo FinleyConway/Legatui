@@ -1,5 +1,5 @@
 use crate::audio::{
-    jukebox::Jukebox, audio_clip::AudioClip
+    audio_player::AudioPlayer, audio_clip::AudioClip
 };
 
 use ratatui;
@@ -9,7 +9,7 @@ use crossterm::event;
 
 pub struct Application
 {
-    pub jukebok: Jukebox,
+    pub audio_player: AudioPlayer,
     should_close: bool,
 }
 
@@ -19,7 +19,7 @@ impl Application
     {
         Application
         {
-            jukebok: Jukebox::new(),
+            audio_player: AudioPlayer::new(),
             should_close: false,
         }
     }
@@ -46,7 +46,7 @@ impl Application
     fn temp(&mut self) -> () // test clip playing
     {
         let clip = AudioClip::try_new("/home/finley/Music/Ruby the Hatchet - Tomorrow Never Comes.mp3").unwrap();
-        self.jukebok.try_play_track(&clip).unwrap();
+        self.audio_player.try_play(&clip).unwrap();
     }
 
     fn handle_events(&mut self) -> std::io::Result<()>
@@ -74,13 +74,15 @@ impl Application
         {
             event::KeyCode::Char('q') => self.close(),
             event::KeyCode::Char(' ') => self.temp(),
+            event::KeyCode::Char('p') => self.audio_player.toggle_pause(),
+            event::KeyCode::Char('s') => self.audio_player.stop(),
             _ => {}
         }
     }
 
     fn draw(&self, frame: &mut ratatui::Frame) -> ()
     {
-        let data = self.jukebok.try_get_playing_data();
+        let data = self.audio_player.try_get_playing_data();
 
         match data
         {
