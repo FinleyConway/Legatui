@@ -49,7 +49,7 @@ impl AudioPlayer
             name_of_artist: record.artist.clone(),
             duration: source_duration,
         });
-
+        
         // play the clip
         self.stream_handler.append(source);
 
