@@ -1,10 +1,11 @@
 mod window;
 mod audio;
 
+use std::path;
+
 use audio::audio_reader::AudioReader;
 use window::application::Application;
 use ratatui;
-use std::{path, vec::Vec};
 
 fn main() -> std::io::Result<()>
 {   
@@ -15,7 +16,7 @@ fn main() -> std::io::Result<()>
     let path = path::Path::new("/home/finley/Music/");
     let mut files = Vec::new();
 
-    AudioReader::new().find(path, &mut |e| files.push(e))?;
+    AudioReader::default().find(path, &mut |e| files.push(e))?;
 
     dbg!(files);
 
