@@ -88,3 +88,49 @@ impl AudioClip
         return &self.genre;
     }
 }
+
+#[cfg(test)]
+mod tests
+{
+    use super::*;
+
+    #[test]
+    fn test_new_blank()
+    {
+        let clip = AudioClip::new("");
+
+        assert_eq!(clip.get_title(), "Unknown Song");
+        assert_eq!(clip.get_album(), "Unknown Album");
+        assert_eq!(clip.get_artist(), "Unknown Artist");
+        assert_eq!(clip.get_genre(), "Unknown Genre");
+    }
+
+    #[test]
+    fn test_new()
+    {
+        let clip = AudioClip::new("src/audio/Test.mp3");
+
+        assert_eq!(clip.get_title(), "Test");
+        assert_eq!(clip.get_album(), "TestAlbum");
+        assert_eq!(clip.get_artist(), "TestBand");
+        assert_eq!(clip.get_genre(), "TestGenre");
+    }
+
+    #[test]
+    fn test_try_load_source()
+    {
+        let clip = AudioClip::new("src/audio/Test.mp3");
+        let source = clip.try_load_source();
+
+        assert_eq!(source.is_some(), true);
+    }
+
+    #[test]
+    fn test_try_load_source_blank()
+    {
+        let clip = AudioClip::new("");
+        let source = clip.try_load_source();
+
+        assert_eq!(source.is_some(), false);
+    }
+}
