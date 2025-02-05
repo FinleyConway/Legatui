@@ -45,8 +45,8 @@ impl AudioPlayer
         // keep track of the playing data and add it to the sink
         self.current_track = Some(PlayingData
         {
-            name_of_song: record.title.clone(),
-            name_of_artist: record.artist.clone(),
+            name_of_song: record.get_title().to_owned(),
+            name_of_artist: record.get_artist().to_owned(),
             duration: source_duration,
         });
         

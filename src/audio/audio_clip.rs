@@ -3,38 +3,53 @@ use std::{fs, io};
 #[derive(Debug, Default)]
 pub struct AudioClip
 {
-    pub title: String,
-    pub album: String,
-    pub artist: String,
-    pub genre: String,
+    title: String,
+    album: String,
+    artist: String,
+    genre: String,
     file_path: String,
 }
 
 impl AudioClip
 {
-    pub fn try_new(file_path: &str) -> Option<AudioClip>
+    pub fn new(file_path: &str) -> AudioClip
     {
+        const DEFAULT_SONG: &str = "Unknown Song";
+        const DEFAULT_ALBUM: &str = "Unknown Album";
+        const DEFAULT_ARTIST: &str = "Unknown Artist";
+        const DEFAULT_GENRE: &str = "Unknown Genre";
+
         match audiotags::Tag::new().read_from_path(file_path) 
         {
             // if it was succesfull in reading the audio tags
             Ok(audio_tags) => 
             {
                 // either get or set the values to default
-                let artist = audio_tags.artist().unwrap_or_default();
-                let album_name = audio_tags.album_title().unwrap_or_default();
-                let song_name = audio_tags.title().unwrap_or_default();
-                let song_genre = audio_tags.genre().unwrap_or_default(); // TODO: rovide a better error handling
+                let song_name = audio_tags.title().unwrap_or(DEFAULT_SONG);
+                let album_name = audio_tags.album_title().unwrap_or(DEFAULT_ALBUM);
+                let artist_name = audio_tags.artist().unwrap_or(DEFAULT_ARTIST);
+                let song_genre = audio_tags.genre().unwrap_or(DEFAULT_GENRE);
 
-                Some(AudioClip 
+                return AudioClip 
                 {
                     title: song_name.to_string(),
                     album: album_name.to_string(),
-                    artist: artist.to_string(),
+                    artist: artist_name.to_string(),
                     genre: song_genre.to_string(),
                     file_path: file_path.to_string(),
-                })
+                }
             }
-            Err(_) => None,
+            Err(_) => 
+            {
+                return AudioClip
+                {
+                    title: DEFAULT_SONG.to_string(),
+                    album: DEFAULT_ALBUM.to_string(),
+                    artist: DEFAULT_ARTIST.to_string(),
+                    genre: DEFAULT_GENRE.to_string(),
+                    file_path: file_path.to_string()
+                }
+            }
         }
     }
 
@@ -51,5 +66,25 @@ impl AudioClip
             Ok(source) => return Some(source),
             Err(_) => return None, // TODO: provide a better error
         };
+    }
+
+    pub fn get_title(&self) -> &str
+    {
+        return &self.title;
+    }
+
+    pub fn get_album(&self) -> &str
+    {
+        return &self.album;
+    }
+
+    pub fn get_artist(&self) -> &str
+    {
+        return &self.artist;
+    }
+
+    pub fn get_genre(&self) -> &str
+    {
+        return &self.genre;
     }
 }

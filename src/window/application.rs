@@ -45,7 +45,7 @@ impl Application
 
     fn temp(&mut self) -> () // test clip playing
     {
-        let clip = AudioClip::try_new("/home/finley/Music/Ruby the Hatchet - Tomorrow Never Comes.mp3").unwrap();
+        let clip = AudioClip::new("/home/finley/Music/Ruby the Hatchet - Tomorrow Never Comes.mp3");
         self.audio_player.try_play(&clip).unwrap();
     }
 
