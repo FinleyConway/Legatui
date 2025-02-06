@@ -7,6 +7,7 @@ use ratatui;
 
 fn main() -> std::io::Result<()>
 {   
+    // import clips
     let clips = AudioImporter::default().gather_clips_args()?;
 
     // initialse terminal and application
