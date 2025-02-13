@@ -6,7 +6,6 @@ pub struct AudioClip
     title: String,
     album: String,
     artist: String,
-    genre: String,
     file_path: String,
 }
 
@@ -17,7 +16,6 @@ impl AudioClip
         const DEFAULT_SONG: &str = "Unknown Song";
         const DEFAULT_ALBUM: &str = "Unknown Album";
         const DEFAULT_ARTIST: &str = "Unknown Artist";
-        const DEFAULT_GENRE: &str = "Unknown Genre";
 
         match audiotags::Tag::new().read_from_path(file_path) 
         {
@@ -28,14 +26,12 @@ impl AudioClip
                 let song_name = audio_tags.title().unwrap_or(DEFAULT_SONG);
                 let album_name = audio_tags.album_title().unwrap_or(DEFAULT_ALBUM);
                 let artist_name = audio_tags.artist().unwrap_or(DEFAULT_ARTIST);
-                let song_genre = audio_tags.genre().unwrap_or(DEFAULT_GENRE);
 
                 return AudioClip 
                 {
                     title: song_name.to_string(),
                     album: album_name.to_string(),
                     artist: artist_name.to_string(),
-                    genre: song_genre.to_string(),
                     file_path: file_path.to_string(),
                 }
             }
@@ -46,7 +42,6 @@ impl AudioClip
                     title: DEFAULT_SONG.to_string(),
                     album: DEFAULT_ALBUM.to_string(),
                     artist: DEFAULT_ARTIST.to_string(),
-                    genre: DEFAULT_GENRE.to_string(),
                     file_path: file_path.to_string()
                 }
             }
@@ -82,11 +77,6 @@ impl AudioClip
     {
         return &self.artist;
     }
-
-    pub fn get_genre(&self) -> &str
-    {
-        return &self.genre;
-    }
 }
 
 #[cfg(test)]
@@ -102,7 +92,6 @@ mod tests
         assert_eq!(clip.get_title(), "Unknown Song");
         assert_eq!(clip.get_album(), "Unknown Album");
         assert_eq!(clip.get_artist(), "Unknown Artist");
-        assert_eq!(clip.get_genre(), "Unknown Genre");
     }
 
     #[test]
@@ -113,7 +102,6 @@ mod tests
         assert_eq!(clip.get_title(), "Test");
         assert_eq!(clip.get_album(), "TestAlbum");
         assert_eq!(clip.get_artist(), "TestBand");
-        assert_eq!(clip.get_genre(), "TestGenre");
     }
 
     #[test]
