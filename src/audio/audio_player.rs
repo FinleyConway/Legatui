@@ -13,30 +13,37 @@ pub struct AudioPlayer
 
 impl AudioPlayer
 {
-    pub fn new() -> AudioPlayer
+    pub fn try_new() -> Result<AudioPlayer, &'static str>
     {
-        let (output_stream, handle) = rodio::OutputStream::try_default().unwrap();
-        let sink = rodio::Sink::try_new(&handle).unwrap(); // TODO: Add error handling
+        let output_stream = rodio::OutputStream::try_default();
+        let (output_stream, handle) = match output_stream
+        {
+            Ok(stream) => stream,
+            Err(_) => return Err("Failed to create the output stream!"),
+        };
 
-        return AudioPlayer 
+        let sink = rodio::Sink::try_new(&handle); 
+        let sink = match sink
+        {
+            Ok(s) => s,
+            Err(_) => return Err("Failed to setup audio player!"),
+        };
+
+        return Ok(AudioPlayer 
         {
             _stream: output_stream,
             stream_handler: sink,
             current_track: None,
-        }
+        });
     }
 
-    pub fn try_play(&mut self, record: &AudioClip) -> Result<(), ()>
+    pub fn try_play(&mut self, record: &AudioClip) -> Option<()>
     {
         // try to load the audio 
-        let source = record.try_load_source();
-        let source = match source
-        {
-            Some(source) => source,
-            None => return Err(()), // TODO: provide a better error
-        };
+        let source = record.try_load_source()?;
 
         // attempt to retrieve the audio duration
+        // should be safe to unwrap to default as duration is just a visual
         let source_duration = source.total_duration().unwrap_or_default();
 
         // stop any currently playing audio
@@ -53,7 +60,7 @@ impl AudioPlayer
         // play the clip
         self.stream_handler.append(source);
 
-        return Ok(());
+        return Some(());
     }
 
     pub fn toggle_pause(&self) -> ()

@@ -20,15 +20,15 @@ pub struct Application
 
 impl Application
 {
-    pub fn new(clips: Vec<AudioClip>) -> Application
+    pub fn new(clips: Vec<AudioClip>) -> Result<Application, &'static str>
     {
-        Application
+        return Ok(Application
         {
-            audio_player: AudioPlayer::new(),
+            audio_player: AudioPlayer::try_new()?,
             should_close: false,
             clips: clips,
             state: widgets::ListState::default(),
-        }
+        });
     }
 
     pub fn run(&mut self, terminal: &mut ratatui::DefaultTerminal) -> std::io::Result<()>
@@ -128,13 +128,13 @@ impl Application
 mod tests
 {
     use super::*;
-    use std::io;
     use crossterm::event;
 
     #[test]
-    fn test_key_event() -> io::Result<()> 
+    fn test_key_event() -> Result<(), &'static str> 
     {
-        let mut app = Application::new(Vec::default());
+        let mut app = Application::new(Vec::default())?;
+
         app.handle_key_events(event::KeyCode::Char('q').into());
         assert_eq!(app.should_close, true);
 
