@@ -16,8 +16,9 @@ pub struct Application
     should_close: bool,
 
     clips: Vec<Artist>,
+
     current_state: usize,
-    states: [widgets::ListState; 3]
+    states: [widgets::ListState; 3],
 }
 
 impl Application
@@ -40,6 +41,9 @@ impl Application
 
     pub fn run(&mut self, terminal: &mut ratatui::DefaultTerminal) -> std::io::Result<()>
     {
+        // temp for wrapping index
+        self.states[0].select(Some(0));
+
         while !self.should_close
         {
             // draw ui
@@ -84,8 +88,8 @@ impl Application
             event::KeyCode::Char('p') => self.audio_player.toggle_pause(),
             event::KeyCode::Char('s') => self.audio_player.stop(),
 
-            event::KeyCode::Up        => self.states[self.current_state].select_previous(),            
-            event::KeyCode::Down      => self.states[self.current_state].select_next(),
+            event::KeyCode::Up        => self.previous(),
+            event::KeyCode::Down      => self.next(),
             event::KeyCode::Left      => self.handle_current_state(true),
             event::KeyCode::Right     => self.handle_current_state(false),
             _ => {}
@@ -104,13 +108,27 @@ impl Application
         }
     }
 
-    fn handle_selected(&mut self)
+    fn next(&mut self)
     {
-        if let Some(i) = self.states[self.current_state].selected() 
-        {
-            let clip = &self.clips[i];
+        let current_state = &mut self.states[self.current_state];
 
-            //self.audio_player.try_play(&clip).unwrap();
+        if let Some(selected) = current_state.selected() 
+        {
+            let next = (selected + 1) % self.clips.len(); 
+
+            current_state.select(Some(next));
+        }
+    }
+
+    fn previous(&mut self)
+    {
+        let current_state = &mut self.states[self.current_state];
+
+        if let Some(selected) = current_state.selected() 
+        {
+            let prev = (selected + self.clips.len() - 1) % self.clips.len();
+
+            current_state.select(Some(prev));
         }
     }
     
@@ -118,12 +136,6 @@ impl Application
     {
         use ratatui::widgets::{Block, Borders, List, ListItem};
         use ratatui::style::{Style, Color};
-
-        let data = self.audio_player.try_get_playing_data();
-        let data = match data {
-            Some(data) => format!("Playing: {} - {}", data.get_song(), data.get_artist()),
-            None => "No Song Playing".to_string(),
-        };
 
         let artist_items: Vec<ListItem> = self.clips
             .iter()
@@ -135,8 +147,16 @@ impl Application
 
         if !artist_items.is_empty()
         {
-            album_items = self.clips[0].albums.iter().map(|album| ListItem::new(album.get_name())).collect();
-            song_items = self.clips[0].albums[0].songs.iter().map(|album| ListItem::new(album.get_name())).collect();
+            if let Some(i) = self.states[self.current_state].selected()
+            {
+                album_items = self.clips[i].albums.iter().map(|album| ListItem::new(album.get_name())).collect();
+                song_items = self.clips[i].albums[0].songs.iter().map(|album| ListItem::new(album.get_name())).collect();
+            }
+            else 
+            {
+                album_items = self.clips[0].albums.iter().map(|album| ListItem::new(album.get_name())).collect();
+                song_items = self.clips[0].albums[0].songs.iter().map(|album| ListItem::new(album.get_name())).collect();   
+            }
         }
 
         let artist_list = List::new(artist_items)
