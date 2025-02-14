@@ -1,9 +1,10 @@
+use crate::audio::audio_data::*;
 use crate::audio::{
     audio_player::AudioPlayer, audio_clip::AudioClip
 };
 
 use ratatui;
-use ratatui::widgets;
+use ratatui::widgets::{self, Paragraph, Widget};
 use ratatui::text;
 use ratatui::symbols;
 
@@ -14,20 +15,26 @@ pub struct Application
     pub audio_player: AudioPlayer,
     should_close: bool,
 
-    clips: Vec<AudioClip>,
-    state: widgets::ListState,
+    clips: Vec<Artist>,
+    current_state: usize,
+    states: [widgets::ListState; 3]
 }
 
 impl Application
 {
-    pub fn new(clips: Vec<AudioClip>) -> Result<Application, &'static str>
+    pub fn new(clips: Vec<Artist>) -> Result<Application, &'static str>
     {
         return Ok(Application
         {
             audio_player: AudioPlayer::try_new()?,
             should_close: false,
             clips: clips,
-            state: widgets::ListState::default(),
+            current_state: 0,
+            states: [
+                widgets::ListState::default(),
+                widgets::ListState::default(),
+                widgets::ListState::default(),
+            ],
         });
     }
 
@@ -76,51 +83,90 @@ impl Application
             event::KeyCode::Char('q') => self.close(),
             event::KeyCode::Char('p') => self.audio_player.toggle_pause(),
             event::KeyCode::Char('s') => self.audio_player.stop(),
-            event::KeyCode::Down      => self.state.select_next(),
-            event::KeyCode::Up        => self.state.select_previous(),
-            event::KeyCode::Enter     => self.handle_selected(),
+
+            event::KeyCode::Up        => self.states[self.current_state].select_previous(),            
+            event::KeyCode::Down      => self.states[self.current_state].select_next(),
+            event::KeyCode::Left      => self.handle_current_state(true),
+            event::KeyCode::Right     => self.handle_current_state(false),
             _ => {}
+        }
+    }
+
+    fn handle_current_state(&mut self, backwards: bool)
+    {
+        if backwards
+        {
+            self.current_state = (self.current_state + self.states.len() - 1) % self.states.len();
+        }
+        else
+        {
+            self.current_state = (self.current_state + 1) % self.states.len()
         }
     }
 
     fn handle_selected(&mut self)
     {
-        if let Some(i) = self.state.selected() 
+        if let Some(i) = self.states[self.current_state].selected() 
         {
             let clip = &self.clips[i];
 
-            self.audio_player.try_play(&clip).unwrap();
+            //self.audio_player.try_play(&clip).unwrap();
         }
     }
     
     fn draw(&mut self, frame: &mut ratatui::Frame) -> ()
     {
+        use ratatui::widgets::{Block, Borders, List, ListItem};
+        use ratatui::style::{Style, Color};
+
         let data = self.audio_player.try_get_playing_data();
         let data = match data {
             Some(data) => format!("Playing: {} - {}", data.get_song(), data.get_artist()),
             None => "No Song Playing".to_string(),
         };
 
-        let block = widgets::Block::new()
-            .title(text::Line::raw(data).centered())
-            .borders(widgets::Borders::TOP)
-            .border_set(symbols::border::EMPTY);
+        let artist_items: Vec<ListItem> = self.clips
+            .iter()
+            .map(|artist| ListItem::new(artist.name.as_str()))
+            .collect();
 
-        
-        let mut songs: Vec<&str> = Vec::default();
-        songs.reserve(self.clips.len());
+        let mut album_items: Vec<ListItem> = Vec::new();
+        let mut song_items: Vec<ListItem> = Vec::new();
 
-        for clip in self.clips.iter()
+        if !artist_items.is_empty()
         {
-            songs.push(clip.get_title());
+            album_items = self.clips[0].albums.iter().map(|album| ListItem::new(album.get_name())).collect();
+            song_items = self.clips[0].albums[0].songs.iter().map(|album| ListItem::new(album.get_name())).collect();
         }
 
-        let list = widgets::List::new(songs)
-            .block(block)
-            .highlight_symbol(">")
-            .highlight_spacing(widgets::HighlightSpacing::Always);
+        let artist_list = List::new(artist_items)
+            .block(Block::default().borders(Borders::ALL).title("Artists"))
+            .style(Style::default().fg(Color::White))
+            .highlight_symbol(">");
+        
+        let album_list = List::new(album_items)
+            .block(Block::default().borders(Borders::ALL).title("Albums"))
+            .style(Style::default().fg(Color::White))
+            .highlight_symbol(">");
+    
+        let song_list = List::new(song_items)
+            .block(Block::default().borders(Borders::ALL).title("Songs"))
+            .style(Style::default().fg(Color::White))
+            .highlight_symbol(">");
+    
+        let chunks = ratatui::layout::Layout::default()
+            .direction(ratatui::layout::Direction::Horizontal)
+            .constraints([
+                ratatui::layout::Constraint::Percentage(33),
+                ratatui::layout::Constraint::Percentage(33),
+                ratatui::layout::Constraint::Percentage(34),
+            ])
+            .split(frame.area());
 
-        widgets::StatefulWidget::render(list, frame.area(), &mut frame.buffer_mut(), &mut self.state);
+
+        frame.render_stateful_widget(artist_list, chunks[0], &mut self.states[0]);
+        frame.render_stateful_widget(album_list, chunks[1], &mut self.states[1]);
+        frame.render_stateful_widget(song_list, chunks[2], &mut self.states[2]);
     }
 }
 

@@ -32,8 +32,8 @@ impl Artist
 #[derive(Debug, Default)]
 pub struct Album
 {
-    name: String,
-    songs: Vec<Song>,
+    pub name: String,
+    pub songs: Vec<Song>,
 }
 
 impl Album
@@ -61,8 +61,8 @@ impl Album
 #[derive(Debug, Default)]
 pub struct Song
 {
-    name: String,
-    file_path: String,
+    pub name: String,
+    pub file_path: String,
 }
 
 impl Song

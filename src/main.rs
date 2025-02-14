@@ -13,16 +13,14 @@ fn main() -> std::io::Result<()>
     let clips = AudioImporter::default().gather_clips_args()
         .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
 
-    dbg!(clips);
-
     // initialse terminal and application
-    // let mut terminal = ratatui::init();
-    // let mut application = Application::new(clips)
-    //     .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
+    let mut terminal = ratatui::init();
+    let mut application = Application::new(clips)
+        .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
 
-    // application.run(&mut terminal)?;
+    application.run(&mut terminal)?;
 
-    // ratatui::restore();
+    ratatui::restore();
 
     return Ok(());
 }
